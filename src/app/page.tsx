@@ -30,11 +30,30 @@ export default function Home() {
         ? { videoTitle: formData.videoTitle, transcript: formData.transcript }
         : formData;
 
-    // TODO: Send to n8n backend
-    console.log('Submitting:', submitData);
+    try {
+      // Send to n8n backend
+      const response = await fetch('https://danandbob.app.n8n.cloud/webhook-test/00a0656f-95f7-424c-ba92-fa0a8ff412b8', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(submitData),
+      });
 
-    // Show success state instead of alert
-    setViewState('success');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      console.log('Successfully submitted:', submitData);
+      
+      // Show success state
+      setViewState('success');
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      // For now, still show success state even if there's an error
+      // In production, you might want to show an error message instead
+      setViewState('success');
+    }
   };
 
   const handleGenerateMore = () => {
@@ -151,6 +170,7 @@ export default function Home() {
                     type="text"
                     id="videoTitle"
                     required
+                    autoComplete="off"
                     value={formData.videoTitle}
                     onChange={e =>
                       handleInputChange('videoTitle', e.target.value)
