@@ -48,7 +48,7 @@ const ModalProvider = ({ children }: { children: React.ReactNode }) => {
         hideModal();
       }
     };
-    
+
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
   }, [modalImage, hideModal]);
@@ -80,13 +80,13 @@ const useModal = () => {
 };
 
 // Memoized image component to prevent re-renders
-const GalleryImage = memo(({ 
-  imageUrl, 
-  index, 
+const GalleryImage = memo(({
+  imageUrl,
+  index,
   folderId
-}: { 
-  imageUrl: string; 
-  index: number; 
+}: {
+  imageUrl: string;
+  index: number;
   folderId: string;
 }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -99,18 +99,14 @@ const GalleryImage = memo(({
       className="group relative bg-papery-white/10 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer"
       onClick={() => showModal(imageUrl)}
     >
-      {/* Debug: Show URL */}
-      <div className="absolute top-2 left-2 bg-jet/80 text-papery-white text-xs p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none">
-        {imageUrl.split('id=')[1]?.substring(0, 10)}...
-      </div>
-      
+
       {/* Loading spinner - shows before image loads */}
       {!imageLoaded && !imageError && (
         <div className="absolute inset-0 flex items-center justify-center bg-papery-white/5 z-5">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-energy"></div>
         </div>
       )}
-      
+
       <img
         ref={imgRef}
         src={imageUrl}
@@ -124,7 +120,7 @@ const GalleryImage = memo(({
         onError={(e) => {
           const img = e.target as HTMLImageElement;
           const fileId = imageUrl.split('id=')[1] || imageUrl.split('/d/')[1]?.split('/')[0];
-          
+
           // Only try fallback once per image
           if (!img.dataset.retried && fileId) {
             img.dataset.retried = 'true';
@@ -143,7 +139,7 @@ const GalleryImage = memo(({
           }
         }}
       />
-      
+
       {/* Hover overlay - subtle darkening effect */}
       <div className="absolute inset-0 bg-jet/0 group-hover:bg-jet/10 transition-colors duration-300 z-15 pointer-events-none"></div>
     </div>
@@ -151,11 +147,11 @@ const GalleryImage = memo(({
 });
 
 // Separate modal component to isolate re-renders
-const ImageModal = memo(({ 
-  modalImage, 
-  modalImageLoading, 
-  onClose, 
-  onImageLoad 
+const ImageModal = memo(({
+  modalImage,
+  modalImageLoading,
+  onClose,
+  onImageLoad
 }: {
   modalImage: string | null;
   modalImageLoading: boolean;
@@ -165,7 +161,7 @@ const ImageModal = memo(({
   if (!modalImage) return null;
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-jet/90 backdrop-blur-sm z-50 flex items-center justify-center p-4"
       onClick={onClose}
     >
@@ -179,27 +175,26 @@ const ImageModal = memo(({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
-        
+
         {/* Loading spinner */}
         {modalImageLoading && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-energy"></div>
           </div>
         )}
-        
+
         {/* Modal image */}
         <img
           src={modalImage}
           alt="Full size thumbnail"
-          className={`max-w-full max-h-full object-contain rounded-lg shadow-2xl transition-opacity duration-300 ${
-            modalImageLoading ? 'opacity-0' : 'opacity-100'
-          }`}
+          className={`max-w-full max-h-full object-contain rounded-lg shadow-2xl transition-opacity duration-300 ${modalImageLoading ? 'opacity-0' : 'opacity-100'
+            }`}
           onClick={(e) => e.stopPropagation()}
           onLoad={onImageLoad}
           onError={(e) => {
             const img = e.target as HTMLImageElement;
             const fileId = modalImage.split('id=')[1] || modalImage.split('/d/')[1]?.split('/')[0];
-            
+
             // Only try fallback once per image
             if (!img.dataset.retried && fileId) {
               img.dataset.retried = 'true';
@@ -230,6 +225,8 @@ function HomeContent() {
   const [selectedFolder, setSelectedFolder] = useState<string>('');
   const [folders, setFolders] = useState<DriveFolder[]>([]);
   const [isLoadingFolders, setIsLoadingFolders] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     videoTitle: '',
     transcript: '',
@@ -257,7 +254,7 @@ function HomeContent() {
       }
       const drivefolders: DriveFolder[] = await response.json();
       setFolders(drivefolders);
-      
+
       // Set default folder to the first (most recent) one
       if (drivefolders.length > 0 && !selectedFolder) {
         setSelectedFolder(drivefolders[0].id);
@@ -276,8 +273,10 @@ function HomeContent() {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitError(null);
 
     // Prepare data based on active tab
     const submitData =
@@ -296,7 +295,7 @@ function HomeContent() {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`Server responded with status ${response.status}`);
       }
 
       console.log('Successfully submitted:', submitData);
@@ -305,14 +304,23 @@ function HomeContent() {
       setViewState('success');
     } catch (error) {
       console.error('Error submitting form:', error);
-      // For now, still show success state even if there's an error
-      // In production, you might want to show an error message instead
-      setViewState('success');
+      
+      // Set specific error message based on error type
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        setSubmitError('Unable to connect to the thumbnail generation service. Please check that the n8n workflow is active and try again.');
+      } else if (error instanceof Error) {
+        setSubmitError(`Error: ${error.message}. Please try again or contact support if the issue persists.`);
+      } else {
+        setSubmitError('An unexpected error occurred. Please try again.');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleGenerateMore = () => {
     setViewState('form');
+    setSubmitError(null);
     setFormData({
       videoTitle: '',
       transcript: '',
@@ -426,12 +434,12 @@ function HomeContent() {
               <h3 className="text-xl font-semibold text-papery-white">
                 {currentFolder.name}
               </h3>
-              
+
               {/* Debug info */}
               <div className="text-sm text-papery-white/60">
                 Found {currentFolder.images.length} images
               </div>
-              
+
               {currentFolder.images.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {currentFolder.images.map((imageUrl, index) => (
@@ -494,24 +502,22 @@ function HomeContent() {
                   {/* Tab Navigation */}
                   <div className="flex space-x-1 bg-papery-white/10 rounded-lg p-1 mb-8">
                     <button
-                      className={`flex-1 py-3 px-4 rounded-md font-medium transition-all duration-200 ${
-                        activeTab === 'concept-generation'
+                      className={`flex-1 py-3 px-4 rounded-md font-medium transition-all duration-200 ${activeTab === 'concept-generation'
                           ? 'bg-orange-energy text-white shadow-md'
                           : 'text-papery-white hover:bg-papery-white/10'
-                      }`}
+                        }`}
                       onClick={() => setActiveTab('concept-generation')}
                     >
                       Concept Generation Mode
                     </button>
                     <button
-                      className={`flex-1 py-3 px-4 rounded-md font-medium transition-all duration-200 ${
-                        activeTab === 'specific-concept'
+                      className={`flex-1 py-3 px-4 rounded-md font-medium transition-all duration-200 ${activeTab === 'specific-concept'
                           ? 'bg-orange-energy text-white shadow-md'
                           : 'text-papery-white hover:bg-papery-white/10'
-                      }`}
+                        }`}
                       onClick={() => setActiveTab('specific-concept')}
                     >
-                      Specific Concept Mode
+                      Concept Execution Mode
                     </button>
                   </div>
 
@@ -583,15 +589,38 @@ function HomeContent() {
                       </div>
                     )}
 
+                    {/* Error Message */}
+                    {submitError && (
+                      <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 text-red-400">
+                        <div className="flex items-start space-x-3">
+                          <svg className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <div>
+                            <p className="text-sm font-medium">Submission Failed</p>
+                            <p className="text-sm mt-1">{submitError}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Submit Button */}
                     <div className="pt-4 space-y-3">
                       <button
                         type="submit"
-                        className="w-full bg-orange-energy text-white py-4 px-6 rounded-lg font-semibold text-lg hover:bg-orange-energy/90 transition-colors shadow-lg hover:shadow-xl"
+                        disabled={isSubmitting}
+                        className="w-full bg-orange-energy text-white py-4 px-6 rounded-lg font-semibold text-lg hover:bg-orange-energy/90 transition-colors shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                       >
-                        Generate Thumbnails
+                        {isSubmitting ? (
+                          <>
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                            Generating...
+                          </>
+                        ) : (
+                          'Generate Thumbnails'
+                        )}
                       </button>
-                      
+
                       {/* Gallery Navigation Button */}
                       <button
                         type="button"
