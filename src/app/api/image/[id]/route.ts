@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
+import { NextRequest, NextResponse } from 'next/server';
 
 async function initializeGoogleDrive() {
   try {
@@ -30,7 +30,7 @@ async function initializeGoogleDrive() {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const drive = await initializeGoogleDrive();
@@ -39,7 +39,8 @@ export async function GET(
       return NextResponse.json({ error: 'Google Drive not configured' }, { status: 500 });
     }
 
-    const fileId = params.id;
+    const resolvedParams = await params;
+    const fileId = resolvedParams.id;
     
     // Get the file content
     const response = await drive.files.get({
@@ -55,7 +56,7 @@ export async function GET(
 
     const contentType = metadata.data.mimeType || 'image/jpeg';
     
-    return new NextResponse(response.data, {
+    return new NextResponse(response.data as BodyInit, {
       headers: {
         'Content-Type': contentType,
         'Cache-Control': 'public, max-age=3600',

@@ -80,15 +80,13 @@ const useModal = () => {
 };
 
 // Memoized image component to prevent re-renders
-const GalleryImage = memo(({
-  imageUrl,
-  index,
-  folderId
-}: {
-  imageUrl: string;
+const GalleryImage = memo(function GalleryImage({ 
+  imageUrl, 
+  index
+}: { 
+  imageUrl: string; 
   index: number;
-  folderId: string;
-}) => {
+}) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
@@ -113,7 +111,7 @@ const GalleryImage = memo(({
         alt=""
         className="w-full h-48 object-cover relative z-10 transition-opacity duration-300"
         loading="eager"
-        onLoad={(e) => {
+        onLoad={() => {
           console.log(`Image ${index + 1} loaded successfully`);
           setImageLoaded(true);
         }}
@@ -147,17 +145,17 @@ const GalleryImage = memo(({
 });
 
 // Separate modal component to isolate re-renders
-const ImageModal = memo(({
-  modalImage,
-  modalImageLoading,
-  onClose,
-  onImageLoad
+const ImageModal = memo(function ImageModal({ 
+  modalImage, 
+  modalImageLoading, 
+  onClose, 
+  onImageLoad 
 }: {
   modalImage: string | null;
   modalImageLoading: boolean;
   onClose: () => void;
   onImageLoad: () => void;
-}) => {
+}) {
   if (!modalImage) return null;
 
   return (
@@ -236,16 +234,7 @@ function HomeContent() {
   // Get current folder
   const currentFolder = folders.find(f => f.id === selectedFolder);
 
-  // Load folders when gallery page is accessed
-  useEffect(() => {
-    if (pageState === 'gallery' && folders.length === 0) {
-      loadFolders();
-    }
-  }, [pageState]);
-
-
-
-  const loadFolders = async () => {
+      const loadFolders = useCallback(async () => {
     setIsLoadingFolders(true);
     try {
       const response = await fetch('/api/folders');
@@ -254,7 +243,7 @@ function HomeContent() {
       }
       const drivefolders: DriveFolder[] = await response.json();
       setFolders(drivefolders);
-
+      
       // Set default folder to the first (most recent) one
       if (drivefolders.length > 0 && !selectedFolder) {
         setSelectedFolder(drivefolders[0].id);
@@ -264,7 +253,14 @@ function HomeContent() {
     } finally {
       setIsLoadingFolders(false);
     }
-  };
+  }, [selectedFolder]);
+
+  // Load folders when gallery page is accessed
+  useEffect(() => {
+    if (pageState === 'gallery' && folders.length === 0) {
+      loadFolders();
+    }
+  }, [pageState, folders.length, loadFolders]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -447,7 +443,6 @@ function HomeContent() {
                       key={`${currentFolder.id}-${index}`}
                       imageUrl={imageUrl}
                       index={index}
-                      folderId={currentFolder.id}
                     />
                   ))}
                 </div>

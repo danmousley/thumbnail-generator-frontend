@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
+import { NextResponse } from 'next/server';
 
 export interface DriveFolder {
   id: string;
@@ -51,6 +51,11 @@ async function initializeGoogleDrive() {
     const serviceAccountPrivateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
     const projectId = process.env.GOOGLE_SERVICE_ACCOUNT_PROJECT_ID;
 
+    console.log('Debug - Environment variables check:');
+    console.log('- GOOGLE_SERVICE_ACCOUNT_EMAIL:', serviceAccountEmail ? 'SET' : 'NOT SET');
+    console.log('- GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY:', serviceAccountPrivateKey ? 'SET' : 'NOT SET');
+    console.log('- GOOGLE_SERVICE_ACCOUNT_PROJECT_ID:', projectId ? 'SET' : 'NOT SET');
+
     if (!serviceAccountEmail || !serviceAccountPrivateKey || !projectId) {
       console.log('Google Drive credentials not configured, using mock data');
       return null;
@@ -73,7 +78,7 @@ async function initializeGoogleDrive() {
   }
 }
 
-async function getImagesFromFolder(drive: any, folderId: string): Promise<string[]> {
+async function getImagesFromFolder(drive: ReturnType<typeof google.drive>, folderId: string): Promise<string[]> {
   try {
     const imagesResponse = await drive.files.list({
       q: `'${folderId}' in parents and (mimeType contains 'image/' or name contains '.jpg' or name contains '.jpeg' or name contains '.png' or name contains '.gif' or name contains '.webp' or name contains '.bmp' or name contains '.svg') and trashed=false`,
@@ -85,7 +90,7 @@ async function getImagesFromFolder(drive: any, folderId: string): Promise<string
     const images = imagesResponse.data.files || [];
     
     // Use the format that works for publicly shared images
-    return images.map((image: any) => {
+    return images.map((image) => {
       return `https://drive.google.com/uc?export=view&id=${image.id}`;
     });
   } catch (error) {
