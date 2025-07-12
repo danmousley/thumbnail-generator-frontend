@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, memo, useRef, createContext, useContext } from 'react';
+import { createPortal } from 'react-dom';
 
 type FormMode = 'concept-generation' | 'specific-concept';
 type ViewState = 'form' | 'success';
@@ -13,7 +14,216 @@ export interface DriveFolder {
   images: string[];
 }
 
-export default function Home() {
+// Modal context for isolated state management
+const ModalContext = createContext<{
+  modalImage: string | null;
+  modalImageLoading: boolean;
+  showModal: (imageUrl: string) => void;
+  hideModal: () => void;
+} | null>(null);
+
+// Modal provider component
+const ModalProvider = ({ children }: { children: React.ReactNode }) => {
+  const [modalImage, setModalImage] = useState<string | null>(null);
+  const [modalImageLoading, setModalImageLoading] = useState(false);
+
+  const showModal = useCallback((imageUrl: string) => {
+    setModalImage(imageUrl);
+    setModalImageLoading(true);
+  }, []);
+
+  const hideModal = useCallback(() => {
+    setModalImage(null);
+    setModalImageLoading(false);
+  }, []);
+
+  const handleModalImageLoad = useCallback(() => {
+    setModalImageLoading(false);
+  }, []);
+
+  // Handle escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && modalImage) {
+        hideModal();
+      }
+    };
+    
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [modalImage, hideModal]);
+
+  return (
+    <ModalContext.Provider value={{ modalImage, modalImageLoading, showModal, hideModal }}>
+      {children}
+      {/* Render modal in portal */}
+      {typeof window !== 'undefined' && modalImage && createPortal(
+        <ImageModal
+          modalImage={modalImage}
+          modalImageLoading={modalImageLoading}
+          onClose={hideModal}
+          onImageLoad={handleModalImageLoad}
+        />,
+        document.body
+      )}
+    </ModalContext.Provider>
+  );
+};
+
+// Hook to use modal context
+const useModal = () => {
+  const context = useContext(ModalContext);
+  if (!context) {
+    throw new Error('useModal must be used within a ModalProvider');
+  }
+  return context;
+};
+
+// Memoized image component to prevent re-renders
+const GalleryImage = memo(({ 
+  imageUrl, 
+  index, 
+  folderId
+}: { 
+  imageUrl: string; 
+  index: number; 
+  folderId: string;
+}) => {
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const { showModal } = useModal();
+
+  return (
+    <div
+      className="group relative bg-papery-white/10 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer"
+      onClick={() => showModal(imageUrl)}
+    >
+      {/* Debug: Show URL */}
+      <div className="absolute top-2 left-2 bg-jet/80 text-papery-white text-xs p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none">
+        {imageUrl.split('id=')[1]?.substring(0, 10)}...
+      </div>
+      
+      {/* Loading spinner - shows before image loads */}
+      {!imageLoaded && !imageError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-papery-white/5 z-5">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-energy"></div>
+        </div>
+      )}
+      
+      <img
+        ref={imgRef}
+        src={imageUrl}
+        alt=""
+        className="w-full h-48 object-cover relative z-10 transition-opacity duration-300"
+        loading="eager"
+        onLoad={(e) => {
+          console.log(`Image ${index + 1} loaded successfully`);
+          setImageLoaded(true);
+        }}
+        onError={(e) => {
+          const img = e.target as HTMLImageElement;
+          const fileId = imageUrl.split('id=')[1] || imageUrl.split('/d/')[1]?.split('/')[0];
+          
+          // Only try fallback once per image
+          if (!img.dataset.retried && fileId) {
+            img.dataset.retried = 'true';
+            if (img.src.includes('uc?export=view')) {
+              console.log(`Trying thumbnail format for image ${index + 1}`);
+              img.src = `https://drive.google.com/thumbnail?id=${fileId}&sz=w400-h300-c`;
+            } else if (img.src.includes('thumbnail')) {
+              console.log(`Trying direct format for image ${index + 1}`);
+              img.src = `https://drive.google.com/uc?id=${fileId}`;
+            } else {
+              console.error(`All formats failed for image ${index + 1}`);
+              setImageError(true);
+            }
+          } else {
+            setImageError(true);
+          }
+        }}
+      />
+      
+      {/* Hover overlay - subtle darkening effect */}
+      <div className="absolute inset-0 bg-jet/0 group-hover:bg-jet/10 transition-colors duration-300 z-15 pointer-events-none"></div>
+    </div>
+  );
+});
+
+// Separate modal component to isolate re-renders
+const ImageModal = memo(({ 
+  modalImage, 
+  modalImageLoading, 
+  onClose, 
+  onImageLoad 
+}: {
+  modalImage: string | null;
+  modalImageLoading: boolean;
+  onClose: () => void;
+  onImageLoad: () => void;
+}) => {
+  if (!modalImage) return null;
+
+  return (
+    <div 
+      className="fixed inset-0 bg-jet/90 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div className="relative max-w-[90vw] max-h-[90vh] flex items-center justify-center">
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 bg-jet/80 text-papery-white p-2 rounded-full hover:bg-jet transition-colors z-10"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+        
+        {/* Loading spinner */}
+        {modalImageLoading && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-energy"></div>
+          </div>
+        )}
+        
+        {/* Modal image */}
+        <img
+          src={modalImage}
+          alt="Full size thumbnail"
+          className={`max-w-full max-h-full object-contain rounded-lg shadow-2xl transition-opacity duration-300 ${
+            modalImageLoading ? 'opacity-0' : 'opacity-100'
+          }`}
+          onClick={(e) => e.stopPropagation()}
+          onLoad={onImageLoad}
+          onError={(e) => {
+            const img = e.target as HTMLImageElement;
+            const fileId = modalImage.split('id=')[1] || modalImage.split('/d/')[1]?.split('/')[0];
+            
+            // Only try fallback once per image
+            if (!img.dataset.retried && fileId) {
+              img.dataset.retried = 'true';
+              if (img.src.includes('uc?export=view')) {
+                console.log('Modal: Trying thumbnail format');
+                img.src = `https://drive.google.com/thumbnail?id=${fileId}&sz=w800-h600-c`;
+              } else if (img.src.includes('thumbnail')) {
+                console.log('Modal: Trying direct format');
+                img.src = `https://drive.google.com/uc?id=${fileId}`;
+              } else {
+                console.error('Modal: All formats failed');
+                onImageLoad();
+              }
+            } else {
+              onImageLoad();
+            }
+          }}
+        />
+      </div>
+    </div>
+  );
+});
+
+function HomeContent() {
   const [pageState, setPageState] = useState<PageState>('generator');
   const [activeTab, setActiveTab] = useState<FormMode>('concept-generation');
   const [viewState, setViewState] = useState<ViewState>('form');
@@ -35,6 +245,8 @@ export default function Home() {
       loadFolders();
     }
   }, [pageState]);
+
+
 
   const loadFolders = async () => {
     setIsLoadingFolders(true);
@@ -223,68 +435,12 @@ export default function Home() {
               {currentFolder.images.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {currentFolder.images.map((imageUrl, index) => (
-                    <div
+                    <GalleryImage
                       key={`${currentFolder.id}-${index}`}
-                      className="group relative bg-papery-white/10 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
-                    >
-                      {/* Debug: Show URL */}
-                      <div className="absolute top-2 left-2 bg-jet/80 text-papery-white text-xs p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                        {imageUrl.split('id=')[1]?.substring(0, 10)}...
-                      </div>
-                      
-                      {/* Loading spinner - shows before image loads */}
-                      <div className="absolute inset-0 flex items-center justify-center bg-papery-white/5 z-5">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-energy"></div>
-                      </div>
-                      
-                      <img
-                        src={imageUrl}
-                        alt=""
-                        className="w-full h-48 object-cover relative z-10 transition-opacity duration-300"
-                        loading="eager"
-                        onLoad={(e) => {
-                          console.log(`Image ${index + 1} loaded successfully`);
-                          // Hide the loading spinner by finding the previous sibling
-                          const spinner = e.currentTarget.previousElementSibling?.previousElementSibling as HTMLElement;
-                          if (spinner) {
-                            spinner.style.display = 'none';
-                          }
-                        }}
-                        onError={(e) => {
-                          const img = e.target as HTMLImageElement;
-                          const fileId = imageUrl.split('id=')[1] || imageUrl.split('/d/')[1]?.split('/')[0];
-                          
-                          // Only try fallback once per image
-                          if (!img.dataset.retried && fileId) {
-                            img.dataset.retried = 'true';
-                            if (img.src.includes('uc?export=view')) {
-                              console.log(`Trying thumbnail format for image ${index + 1}`);
-                              img.src = `https://drive.google.com/thumbnail?id=${fileId}&sz=w400-h300-c`;
-                            } else if (img.src.includes('thumbnail')) {
-                              console.log(`Trying direct format for image ${index + 1}`);
-                              img.src = `https://drive.google.com/uc?id=${fileId}`;
-                            } else {
-                              console.error(`All formats failed for image ${index + 1}`);
-                              // Hide spinner on final failure
-                              const spinner = img.previousElementSibling?.previousElementSibling as HTMLElement;
-                              if (spinner) {
-                                spinner.style.display = 'none';
-                              }
-                            }
-                          }
-                        }}
-                      />
-                      
-                      {/* Hover overlay */}
-                      <div className="absolute inset-0 bg-jet/0 group-hover:bg-jet/20 transition-colors duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100 z-15">
-                        <button 
-                          onClick={() => window.open(imageUrl, '_blank')}
-                          className="bg-orange-energy text-white px-4 py-2 rounded-lg font-medium transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300"
-                        >
-                          View Full Size
-                        </button>
-                      </div>
-                    </div>
+                      imageUrl={imageUrl}
+                      index={index}
+                      folderId={currentFolder.id}
+                    />
                   ))}
                 </div>
               ) : (
@@ -456,5 +612,13 @@ export default function Home() {
       {/* Footer spacing */}
       <div className="h-16"></div>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <ModalProvider>
+      <HomeContent />
+    </ModalProvider>
   );
 }
