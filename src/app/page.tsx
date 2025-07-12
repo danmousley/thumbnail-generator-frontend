@@ -1,18 +1,61 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 type FormMode = 'concept-generation' | 'specific-concept';
 type ViewState = 'form' | 'success';
+type PageState = 'generator' | 'gallery';
+
+export interface DriveFolder {
+  id: string;
+  name: string;
+  lastModified: string;
+  images: string[];
+}
 
 export default function Home() {
+  const [pageState, setPageState] = useState<PageState>('generator');
   const [activeTab, setActiveTab] = useState<FormMode>('concept-generation');
   const [viewState, setViewState] = useState<ViewState>('form');
+  const [selectedFolder, setSelectedFolder] = useState<string>('');
+  const [folders, setFolders] = useState<DriveFolder[]>([]);
+  const [isLoadingFolders, setIsLoadingFolders] = useState(false);
   const [formData, setFormData] = useState({
     videoTitle: '',
     transcript: '',
     conceptDescription: '',
   });
+
+  // Get current folder
+  const currentFolder = folders.find(f => f.id === selectedFolder);
+
+  // Load folders when gallery page is accessed
+  useEffect(() => {
+    if (pageState === 'gallery' && folders.length === 0) {
+      loadFolders();
+    }
+  }, [pageState]);
+
+  const loadFolders = async () => {
+    setIsLoadingFolders(true);
+    try {
+      const response = await fetch('/api/folders');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const drivefolders: DriveFolder[] = await response.json();
+      setFolders(drivefolders);
+      
+      // Set default folder to the first (most recent) one
+      if (drivefolders.length > 0 && !selectedFolder) {
+        setSelectedFolder(drivefolders[0].id);
+      }
+    } catch (error) {
+      console.error('Error loading folders:', error);
+    } finally {
+      setIsLoadingFolders(false);
+    }
+  };
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -66,8 +109,12 @@ export default function Home() {
   };
 
   const handleViewGallery = () => {
-    // TODO: Navigate to gallery page
-    console.log('Navigate to gallery');
+    setPageState('gallery');
+  };
+
+  const handleBackToGenerator = () => {
+    setPageState('generator');
+    setViewState('form');
   };
 
   const SuccessState = () => (
@@ -113,6 +160,149 @@ export default function Home() {
     </div>
   );
 
+  const GalleryPage = () => (
+    <div className="space-y-8">
+      {/* Gallery Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-bold text-papery-white font-main">
+            Thumbnail Gallery
+          </h2>
+          <p className="text-papery-white/80 mt-2">
+            Browse your generated thumbnails by project
+          </p>
+        </div>
+        <button
+          onClick={handleBackToGenerator}
+          className="bg-orange-energy text-white px-6 py-3 rounded-lg font-semibold hover:bg-orange-energy/90 transition-colors shadow-lg"
+        >
+          Back to Generator
+        </button>
+      </div>
+
+      {/* Loading State */}
+      {isLoadingFolders && (
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-energy"></div>
+          <span className="ml-3 text-papery-white">Loading folders...</span>
+        </div>
+      )}
+
+      {/* Folder Selector */}
+      {!isLoadingFolders && folders.length > 0 && (
+        <>
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-papery-white">
+              Select Project Folder
+            </label>
+            <select
+              value={selectedFolder}
+              onChange={(e) => setSelectedFolder(e.target.value)}
+              className="w-full max-w-md px-4 py-3 border border-papery-white/30 rounded-lg focus:ring-2 focus:ring-orange-energy focus:border-orange-energy outline-none transition-colors bg-papery-white/10 text-papery-white"
+            >
+              {folders.map((folder) => (
+                <option key={folder.id} value={folder.id} className="bg-jet text-papery-white">
+                  {folder.name} ({new Date(folder.lastModified).toLocaleDateString()})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Images Grid */}
+          {currentFolder && (
+            <div className="space-y-4">
+              <h3 className="text-xl font-semibold text-papery-white">
+                {currentFolder.name}
+              </h3>
+              
+              {/* Debug info */}
+              <div className="text-sm text-papery-white/60">
+                Found {currentFolder.images.length} images
+              </div>
+              
+              {currentFolder.images.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {currentFolder.images.map((imageUrl, index) => (
+                    <div
+                      key={index}
+                      className="group relative bg-papery-white/10 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                    >
+                      {/* Debug: Show URL */}
+                      <div className="absolute top-2 left-2 bg-jet/80 text-papery-white text-xs p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                        {imageUrl.split('id=')[1]?.substring(0, 10)}...
+                      </div>
+                      
+                      {/* Loading spinner - shows before image loads */}
+                      <div className="absolute inset-0 flex items-center justify-center bg-papery-white/5">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-energy"></div>
+                      </div>
+                      
+                      <img
+                        src={imageUrl}
+                        alt=""
+                        className="w-full h-48 object-cover relative z-10"
+                        loading="eager"
+                        onLoad={() => {
+                          console.log(`Image ${index + 1} loaded successfully`);
+                        }}
+                        onError={(e) => {
+                          const img = e.target as HTMLImageElement;
+                          const fileId = imageUrl.split('id=')[1] || imageUrl.split('/d/')[1]?.split('/')[0];
+                          
+                          console.error(`Image ${index + 1} failed to load:`, imageUrl);
+                          
+                          if (fileId) {
+                            if (img.src.includes('uc?export=view')) {
+                              // Try thumbnail format
+                              console.log(`Trying thumbnail format for image ${index + 1}`);
+                              img.src = `https://drive.google.com/thumbnail?id=${fileId}&sz=w400-h300-c`;
+                            } else if (img.src.includes('thumbnail')) {
+                              // Try direct format
+                              console.log(`Trying direct format for image ${index + 1}`);
+                              img.src = `https://drive.google.com/uc?id=${fileId}`;
+                            } else {
+                              console.error(`All formats failed for image ${index + 1}`);
+                            }
+                          }
+                        }}
+                      />
+                      
+                      <div className="absolute inset-0 bg-jet/0 group-hover:bg-jet/20 transition-colors duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                        <button 
+                          onClick={() => window.open(imageUrl, '_blank')}
+                          className="bg-orange-energy text-white px-4 py-2 rounded-lg font-medium transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300"
+                        >
+                          View Full Size
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-papery-white/60 py-12">
+                  <p>No images found in this folder.</p>
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Empty State */}
+      {!isLoadingFolders && folders.length === 0 && (
+        <div className="text-center text-papery-white/60 py-12">
+          <p>No folders found. Generate some thumbnails first!</p>
+          <button
+            onClick={loadFolders}
+            className="mt-4 bg-orange-energy text-white px-6 py-2 rounded-lg hover:bg-orange-energy/90 transition-colors"
+          >
+            Refresh
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-jet">
       {/* Header */}
@@ -127,113 +317,128 @@ export default function Home() {
 
       {/* Main Container - 75% width, centered */}
       <div className="flex justify-center px-4">
-        <div className="w-full max-w-4xl bg-papery-white/10 backdrop-blur-sm rounded-2xl shadow-lg border border-papery-white/20 p-8">
-          {viewState === 'success' ? (
-            <SuccessState />
+        <div className={`w-full ${pageState === 'gallery' ? 'max-w-6xl' : 'max-w-4xl'} bg-papery-white/10 backdrop-blur-sm rounded-2xl shadow-lg border border-papery-white/20 p-8`}>
+          {pageState === 'gallery' ? (
+            <GalleryPage />
           ) : (
             <>
-              {/* Tab Navigation */}
-              <div className="flex space-x-1 bg-papery-white/10 rounded-lg p-1 mb-8">
-                <button
-                  className={`flex-1 py-3 px-4 rounded-md font-medium transition-all duration-200 ${
-                    activeTab === 'concept-generation'
-                      ? 'bg-orange-energy text-white shadow-md'
-                      : 'text-papery-white hover:bg-papery-white/10'
-                  }`}
-                  onClick={() => setActiveTab('concept-generation')}
-                >
-                  Concept Generation Mode
-                </button>
-                <button
-                  className={`flex-1 py-3 px-4 rounded-md font-medium transition-all duration-200 ${
-                    activeTab === 'specific-concept'
-                      ? 'bg-orange-energy text-white shadow-md'
-                      : 'text-papery-white hover:bg-papery-white/10'
-                  }`}
-                  onClick={() => setActiveTab('specific-concept')}
-                >
-                  Specific Concept Mode
-                </button>
-              </div>
-
-              {/* Form */}
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Video Title Input */}
-                <div>
-                  <label
-                    htmlFor="videoTitle"
-                    className="block text-sm font-semibold text-papery-white mb-2"
-                  >
-                    Video Title *
-                  </label>
-                  <input
-                    type="text"
-                    id="videoTitle"
-                    required
-                    autoComplete="off"
-                    value={formData.videoTitle}
-                    onChange={e =>
-                      handleInputChange('videoTitle', e.target.value)
-                    }
-                    className="w-full px-4 py-3 border border-papery-white/30 rounded-lg focus:ring-2 focus:ring-orange-energy focus:border-orange-energy outline-none transition-colors bg-papery-white/10 text-papery-white placeholder-papery-white/60"
-                    placeholder="Enter your video title..."
-                  />
-                </div>
-
-                {/* Video Transcript */}
-                <div>
-                  <label
-                    htmlFor="transcript"
-                    className="block text-sm font-semibold text-papery-white mb-2"
-                  >
-                    Video Transcript *
-                  </label>
-                  <textarea
-                    id="transcript"
-                    required
-                    rows={6}
-                    value={formData.transcript}
-                    onChange={e =>
-                      handleInputChange('transcript', e.target.value)
-                    }
-                    className="w-full px-4 py-3 border border-papery-white/30 rounded-lg focus:ring-2 focus:ring-orange-energy focus:border-orange-energy outline-none transition-colors bg-papery-white/10 text-papery-white placeholder-papery-white/60 resize-vertical"
-                    placeholder="Paste your video transcript here..."
-                  />
-                </div>
-
-                {/* Specific Concept Description - Only show in specific concept mode */}
-                {activeTab === 'specific-concept' && (
-                  <div>
-                    <label
-                      htmlFor="conceptDescription"
-                      className="block text-sm font-semibold text-papery-white mb-2"
+              {viewState === 'success' ? (
+                <SuccessState />
+              ) : (
+                <>
+                  {/* Tab Navigation */}
+                  <div className="flex space-x-1 bg-papery-white/10 rounded-lg p-1 mb-8">
+                    <button
+                      className={`flex-1 py-3 px-4 rounded-md font-medium transition-all duration-200 ${
+                        activeTab === 'concept-generation'
+                          ? 'bg-orange-energy text-white shadow-md'
+                          : 'text-papery-white hover:bg-papery-white/10'
+                      }`}
+                      onClick={() => setActiveTab('concept-generation')}
                     >
-                      Specific Concept Description *
-                    </label>
-                    <textarea
-                      id="conceptDescription"
-                      required
-                      rows={4}
-                      value={formData.conceptDescription}
-                      onChange={e =>
-                        handleInputChange('conceptDescription', e.target.value)
-                      }
-                      className="w-full px-4 py-3 border border-papery-white/30 rounded-lg focus:ring-2 focus:ring-orange-energy focus:border-orange-energy outline-none transition-colors bg-papery-white/10 text-papery-white placeholder-papery-white/60 resize-vertical"
-                      placeholder="Describe the specific concept you want for your thumbnail..."
-                    />
+                      Concept Generation Mode
+                    </button>
+                    <button
+                      className={`flex-1 py-3 px-4 rounded-md font-medium transition-all duration-200 ${
+                        activeTab === 'specific-concept'
+                          ? 'bg-orange-energy text-white shadow-md'
+                          : 'text-papery-white hover:bg-papery-white/10'
+                      }`}
+                      onClick={() => setActiveTab('specific-concept')}
+                    >
+                      Specific Concept Mode
+                    </button>
                   </div>
-                )}
 
-                {/* Submit Button */}
-                <div className="pt-4">
-                  <button
-                    type="submit"
-                    className="w-full bg-orange-energy text-white py-4 px-6 rounded-lg font-semibold text-lg hover:bg-orange-energy/90 transition-colors shadow-lg hover:shadow-xl"
-                  >
-                    Generate Thumbnails
-                  </button>
-                </div>
-              </form>
+                  {/* Form */}
+                  <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* Video Title Input */}
+                    <div>
+                      <label
+                        htmlFor="videoTitle"
+                        className="block text-sm font-semibold text-papery-white mb-2"
+                      >
+                        Video Title *
+                      </label>
+                      <input
+                        type="text"
+                        id="videoTitle"
+                        required
+                        autoComplete="off"
+                        value={formData.videoTitle}
+                        onChange={e =>
+                          handleInputChange('videoTitle', e.target.value)
+                        }
+                        className="w-full px-4 py-3 border border-papery-white/30 rounded-lg focus:ring-2 focus:ring-orange-energy focus:border-orange-energy outline-none transition-colors bg-papery-white/10 text-papery-white placeholder-papery-white/60"
+                        placeholder="Enter your video title..."
+                      />
+                    </div>
+
+                    {/* Video Transcript */}
+                    <div>
+                      <label
+                        htmlFor="transcript"
+                        className="block text-sm font-semibold text-papery-white mb-2"
+                      >
+                        Video Transcript *
+                      </label>
+                      <textarea
+                        id="transcript"
+                        required
+                        rows={6}
+                        value={formData.transcript}
+                        onChange={e =>
+                          handleInputChange('transcript', e.target.value)
+                        }
+                        className="w-full px-4 py-3 border border-papery-white/30 rounded-lg focus:ring-2 focus:ring-orange-energy focus:border-orange-energy outline-none transition-colors bg-papery-white/10 text-papery-white placeholder-papery-white/60 resize-vertical"
+                        placeholder="Paste your video transcript here..."
+                      />
+                    </div>
+
+                    {/* Specific Concept Description - Only show in specific concept mode */}
+                    {activeTab === 'specific-concept' && (
+                      <div>
+                        <label
+                          htmlFor="conceptDescription"
+                          className="block text-sm font-semibold text-papery-white mb-2"
+                        >
+                          Specific Concept Description *
+                        </label>
+                        <textarea
+                          id="conceptDescription"
+                          required
+                          rows={4}
+                          value={formData.conceptDescription}
+                          onChange={e =>
+                            handleInputChange('conceptDescription', e.target.value)
+                          }
+                          className="w-full px-4 py-3 border border-papery-white/30 rounded-lg focus:ring-2 focus:ring-orange-energy focus:border-orange-energy outline-none transition-colors bg-papery-white/10 text-papery-white placeholder-papery-white/60 resize-vertical"
+                          placeholder="Describe the specific concept you want for your thumbnail..."
+                        />
+                      </div>
+                    )}
+
+                    {/* Submit Button */}
+                    <div className="pt-4 space-y-3">
+                      <button
+                        type="submit"
+                        className="w-full bg-orange-energy text-white py-4 px-6 rounded-lg font-semibold text-lg hover:bg-orange-energy/90 transition-colors shadow-lg hover:shadow-xl"
+                      >
+                        Generate Thumbnails
+                      </button>
+                      
+                      {/* Gallery Navigation Button */}
+                      <button
+                        type="button"
+                        onClick={handleViewGallery}
+                        className="w-full bg-papery-white/10 text-papery-white border border-papery-white/30 py-3 px-6 rounded-lg font-medium hover:bg-papery-white/20 transition-colors"
+                      >
+                        View Existing Thumbnails
+                      </button>
+                    </div>
+                  </form>
+                </>
+              )}
             </>
           )}
         </div>

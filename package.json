@@ -13,6 +13,7 @@
     "fix": "npm run lint:fix && npm run format"
   },
   "dependencies": {
+    "googleapis": "^152.0.0",
     "next": "15.3.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
