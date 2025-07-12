@@ -224,50 +224,59 @@ export default function Home() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {currentFolder.images.map((imageUrl, index) => (
                     <div
-                      key={index}
+                      key={`${currentFolder.id}-${index}`}
                       className="group relative bg-papery-white/10 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
                     >
                       {/* Debug: Show URL */}
-                      <div className="absolute top-2 left-2 bg-jet/80 text-papery-white text-xs p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                      <div className="absolute top-2 left-2 bg-jet/80 text-papery-white text-xs p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity z-20">
                         {imageUrl.split('id=')[1]?.substring(0, 10)}...
                       </div>
                       
                       {/* Loading spinner - shows before image loads */}
-                      <div className="absolute inset-0 flex items-center justify-center bg-papery-white/5">
+                      <div className="absolute inset-0 flex items-center justify-center bg-papery-white/5 z-5">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-energy"></div>
                       </div>
                       
                       <img
                         src={imageUrl}
                         alt=""
-                        className="w-full h-48 object-cover relative z-10"
+                        className="w-full h-48 object-cover relative z-10 transition-opacity duration-300"
                         loading="eager"
-                        onLoad={() => {
+                        onLoad={(e) => {
                           console.log(`Image ${index + 1} loaded successfully`);
+                          // Hide the loading spinner by finding the previous sibling
+                          const spinner = e.currentTarget.previousElementSibling?.previousElementSibling as HTMLElement;
+                          if (spinner) {
+                            spinner.style.display = 'none';
+                          }
                         }}
                         onError={(e) => {
                           const img = e.target as HTMLImageElement;
                           const fileId = imageUrl.split('id=')[1] || imageUrl.split('/d/')[1]?.split('/')[0];
                           
-                          console.error(`Image ${index + 1} failed to load:`, imageUrl);
-                          
-                          if (fileId) {
+                          // Only try fallback once per image
+                          if (!img.dataset.retried && fileId) {
+                            img.dataset.retried = 'true';
                             if (img.src.includes('uc?export=view')) {
-                              // Try thumbnail format
                               console.log(`Trying thumbnail format for image ${index + 1}`);
                               img.src = `https://drive.google.com/thumbnail?id=${fileId}&sz=w400-h300-c`;
                             } else if (img.src.includes('thumbnail')) {
-                              // Try direct format
                               console.log(`Trying direct format for image ${index + 1}`);
                               img.src = `https://drive.google.com/uc?id=${fileId}`;
                             } else {
                               console.error(`All formats failed for image ${index + 1}`);
+                              // Hide spinner on final failure
+                              const spinner = img.previousElementSibling?.previousElementSibling as HTMLElement;
+                              if (spinner) {
+                                spinner.style.display = 'none';
+                              }
                             }
                           }
                         }}
                       />
                       
-                      <div className="absolute inset-0 bg-jet/0 group-hover:bg-jet/20 transition-colors duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                      {/* Hover overlay */}
+                      <div className="absolute inset-0 bg-jet/0 group-hover:bg-jet/20 transition-colors duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100 z-15">
                         <button 
                           onClick={() => window.open(imageUrl, '_blank')}
                           className="bg-orange-energy text-white px-4 py-2 rounded-lg font-medium transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300"
