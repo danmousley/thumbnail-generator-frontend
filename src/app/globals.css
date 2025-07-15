@@ -1,0 +1,55 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Kalam:wght@300;400;700&display=swap');
+@import 'tailwindcss';
+
+:root {
+  --background: #323031; /* Jet Black */
+  --foreground: #f0ece3; /* Papery White for text */
+  --primary: #f0ece3; /* Papery White for primary elements */
+  --secondary: #ff810a; /* Orange Energy */
+  --tertiary: #4a563b; /* Muted Green */
+  --papery-white: #f0ece3;
+  --jet: #323031;
+  --orange-energy: #ff810a;
+  --muted-green: #4a563b;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-tertiary: var(--tertiary);
+  --color-papery-white: var(--papery-white);
+  --color-jet: var(--jet);
+  --color-orange-energy: var(--orange-energy);
+  --color-muted-green: var(--muted-green);
+
+  /* Custom font families */
+  --font-main:
+    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-sketch: 'Kalam', cursive, sans-serif;
+  --font-sans: var(--font-main);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #323031;
+    --foreground: #f0ece3;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-main);
+  min-height: 100vh;
+}
+
+/* Button cursor styles */
+button {
+  cursor: pointer;
+}
+
+button:hover {
+  cursor: pointer;
+}
