@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, memo } from 'react';
+
 import { useModal } from './ModalProvider';
 
 interface GalleryImageProps {

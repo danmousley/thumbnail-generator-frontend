@@ -8,7 +8,7 @@ interface ThumbnailFormProps {
   formData: FormData;
   onInputChange: (field: string, value: string) => void;
   onSubmit: (e: React.FormEvent) => void;
-  onViewGallery: () => void;
+  onViewGallery: (folderId?: string) => void;
   isSubmitting: boolean;
   submitError: string | null;
 }
@@ -150,7 +150,7 @@ export const ThumbnailForm = ({
           {/* Gallery Navigation Button */}
           <button
             type="button"
-            onClick={onViewGallery}
+            onClick={() => onViewGallery()}
             className="w-full bg-papery-white/10 text-papery-white border border-papery-white/30 py-3 px-6 rounded-lg font-medium hover:bg-papery-white/20 transition-colors"
           >
             View Existing Thumbnails

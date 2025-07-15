@@ -1,15 +1,18 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+
 import { DriveFolder } from '@/types';
+
 import { GalleryImage } from './GalleryImage';
 
 interface GalleryPageProps {
   onBackToGenerator: () => void;
+  selectedFolder: string;
+  onFolderChange: (folderId: string) => void;
 }
 
-export const GalleryPage = ({ onBackToGenerator }: GalleryPageProps) => {
-  const [selectedFolder, setSelectedFolder] = useState<string>('');
+export const GalleryPage = ({ onBackToGenerator, selectedFolder, onFolderChange }: GalleryPageProps) => {
   const [folders, setFolders] = useState<DriveFolder[]>([]);
   const [isLoadingFolders, setIsLoadingFolders] = useState(false);
 
@@ -28,14 +31,14 @@ export const GalleryPage = ({ onBackToGenerator }: GalleryPageProps) => {
       
       // Set default folder to the first (most recent) one
       if (drivefolders.length > 0 && !selectedFolder) {
-        setSelectedFolder(drivefolders[0].id);
+        onFolderChange(drivefolders[0].id);
       }
     } catch (error) {
       console.error('Error loading folders:', error);
     } finally {
       setIsLoadingFolders(false);
     }
-  }, [selectedFolder]);
+  }, [selectedFolder, onFolderChange]);
 
   // Load folders when component mounts
   useEffect(() => {
@@ -81,7 +84,7 @@ export const GalleryPage = ({ onBackToGenerator }: GalleryPageProps) => {
             </label>
             <select
               value={selectedFolder}
-              onChange={(e) => setSelectedFolder(e.target.value)}
+              onChange={(e) => onFolderChange(e.target.value)}
               className="w-full max-w-md px-4 py-3 border border-papery-white/30 rounded-lg focus:ring-2 focus:ring-orange-energy focus:border-orange-energy outline-none transition-colors bg-papery-white/10 text-papery-white"
             >
               {folders.map((folder) => (

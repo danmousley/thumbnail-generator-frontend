@@ -1,14 +1,20 @@
 'use client';
 
-import { useState } from 'react';
-import { FormMode, ViewState, PageState, FormData } from '@/types';
-import { ModalProvider } from '@/components/ModalProvider';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+
 import { GalleryPage } from '@/components/GalleryPage';
+import { ModalProvider } from '@/components/ModalProvider';
 import { SuccessState } from '@/components/SuccessState';
 import { ThumbnailForm } from '@/components/ThumbnailForm';
+import { FormMode, ViewState, PageState, FormData } from '@/types';
 
 function HomeContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
   const [pageState, setPageState] = useState<PageState>('generator');
+  const [selectedFolder, setSelectedFolder] = useState<string>('');
   const [activeTab, setActiveTab] = useState<FormMode>('concept-generation');
   const [viewState, setViewState] = useState<ViewState>('form');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -18,6 +24,31 @@ function HomeContent() {
     transcript: '',
     conceptDescription: '',
   });
+
+  // Initialize state from URL parameters
+  useEffect(() => {
+    const page = searchParams.get('page');
+    const folder = searchParams.get('folder');
+    
+    if (page === 'gallery') {
+      setPageState('gallery');
+      if (folder) {
+        setSelectedFolder(folder);
+      }
+    } else {
+      setPageState('generator');
+    }
+  }, [searchParams]);
+
+  // Handle browser back/forward buttons
+  useEffect(() => {
+    const handlePopState = () => {
+      // The useEffect above will handle the state update when searchParams change
+    };
+    
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -82,13 +113,32 @@ function HomeContent() {
     });
   };
 
-  const handleViewGallery = () => {
+  const handleViewGallery = (folderId?: string) => {
+    const params = new URLSearchParams();
+    params.set('page', 'gallery');
+    if (folderId) {
+      params.set('folder', folderId);
+      setSelectedFolder(folderId);
+    }
+    router.push(`/?${params.toString()}`);
     setPageState('gallery');
   };
 
   const handleBackToGenerator = () => {
+    router.push('/');
     setPageState('generator');
     setViewState('form');
+    setSelectedFolder('');
+  };
+
+  const handleFolderChange = (folderId: string) => {
+    const params = new URLSearchParams();
+    params.set('page', 'gallery');
+    if (folderId) {
+      params.set('folder', folderId);
+    }
+    router.push(`/?${params.toString()}`);
+    setSelectedFolder(folderId);
   };
 
   return (
@@ -107,7 +157,11 @@ function HomeContent() {
       <div className="flex justify-center px-4">
         <div className={`w-full ${pageState === 'gallery' ? 'max-w-6xl' : 'max-w-4xl'} bg-papery-white/10 backdrop-blur-sm rounded-2xl shadow-lg border border-papery-white/20 p-8`}>
           {pageState === 'gallery' ? (
-            <GalleryPage onBackToGenerator={handleBackToGenerator} />
+            <GalleryPage 
+              onBackToGenerator={handleBackToGenerator}
+              selectedFolder={selectedFolder}
+              onFolderChange={handleFolderChange}
+            />
           ) : (
             <>
               {viewState === 'success' ? (
@@ -141,7 +195,11 @@ function HomeContent() {
 export default function Home() {
   return (
     <ModalProvider>
-      <HomeContent />
+      <Suspense fallback={<div className="min-h-screen bg-jet flex items-center justify-center">
+        <div className="text-papery-white">Loading...</div>
+      </div>}>
+        <HomeContent />
+      </Suspense>
     </ModalProvider>
   );
 }

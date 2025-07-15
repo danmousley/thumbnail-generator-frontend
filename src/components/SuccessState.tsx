@@ -2,7 +2,7 @@
 
 interface SuccessStateProps {
   onGenerateMore: () => void;
-  onViewGallery: () => void;
+  onViewGallery: (folderId?: string) => void;
 }
 
 export const SuccessState = ({ onGenerateMore, onViewGallery }: SuccessStateProps) => {
@@ -40,7 +40,7 @@ export const SuccessState = ({ onGenerateMore, onViewGallery }: SuccessStateProp
           Generate More Thumbnails
         </button>
         <button
-          onClick={onViewGallery}
+          onClick={() => onViewGallery()}
           className="w-full bg-papery-white text-jet py-4 px-6 rounded-lg font-semibold text-lg hover:bg-papery-white/90 transition-colors shadow-lg hover:shadow-xl"
         >
           View Gallery

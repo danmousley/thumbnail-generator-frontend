@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useCallback, createContext, useContext } from 'react';
 import { createPortal } from 'react-dom';
+
 import { ModalContextType } from '@/types';
+
 import { ImageModal } from './ImageModal';
 
 // Modal context for isolated state management
