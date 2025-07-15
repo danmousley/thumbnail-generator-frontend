@@ -51,10 +51,7 @@ async function initializeGoogleDrive() {
     const serviceAccountPrivateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
     const projectId = process.env.GOOGLE_SERVICE_ACCOUNT_PROJECT_ID;
 
-    console.log('Debug - Environment variables check:');
-    console.log('- GOOGLE_SERVICE_ACCOUNT_EMAIL:', serviceAccountEmail ? 'SET' : 'NOT SET');
-    console.log('- GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY:', serviceAccountPrivateKey ? 'SET' : 'NOT SET');
-    console.log('- GOOGLE_SERVICE_ACCOUNT_PROJECT_ID:', projectId ? 'SET' : 'NOT SET');
+
 
     if (!serviceAccountEmail || !serviceAccountPrivateKey || !projectId) {
       console.log('Google Drive credentials not configured, using mock data');
