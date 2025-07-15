@@ -43,6 +43,7 @@ function HomeContent() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_N8N_API_TOKEN}`,
         },
         body: JSON.stringify(submitData),
       });
