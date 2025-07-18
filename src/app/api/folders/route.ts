@@ -86,10 +86,8 @@ async function getImagesFromFolder(drive: ReturnType<typeof google.drive>, folde
 
     const images = imagesResponse.data.files || [];
     
-    // Use the format that works for publicly shared images
-    return images.map((image) => {
-      return `https://drive.google.com/uc?export=view&id=${image.id}`;
-    });
+    // Use the API route instead of direct Google Drive URLs for proper authentication
+    return images.map((image) => `/api/image/${image.id}`);
   } catch (error) {
     console.error('Error fetching images from folder:', error);
     return [];

@@ -23,7 +23,7 @@ export const ImageModal = memo(function ImageModal({
       className="fixed inset-0 bg-jet/90 backdrop-blur-sm z-50 flex items-center justify-center p-4"
       onClick={onClose}
     >
-      <div className="relative max-w-[90vw] max-h-[90vh] flex items-center justify-center">
+      <div className="relative w-full h-full flex items-center justify-center">
         {/* Close button */}
         <button
           onClick={onClose}
@@ -45,7 +45,7 @@ export const ImageModal = memo(function ImageModal({
         <img
           src={modalImage}
           alt="Full size thumbnail"
-          className={`max-w-full max-h-full object-contain rounded-lg shadow-2xl transition-opacity duration-300 ${modalImageLoading ? 'opacity-0' : 'opacity-100'
+          className={`max-w-[calc(100vw-2rem)] max-h-[calc(100vh-2rem)] object-contain rounded-lg shadow-2xl transition-opacity duration-300 ${modalImageLoading ? 'opacity-0' : 'opacity-100'
             }`}
           onClick={(e) => e.stopPropagation()}
           onLoad={onImageLoad}
@@ -57,13 +57,10 @@ export const ImageModal = memo(function ImageModal({
             if (!img.dataset.retried && fileId) {
               img.dataset.retried = 'true';
               if (img.src.includes('uc?export=view')) {
-                console.log('Modal: Trying thumbnail format');
                 img.src = `https://drive.google.com/thumbnail?id=${fileId}&sz=w800-h600-c`;
               } else if (img.src.includes('thumbnail')) {
-                console.log('Modal: Trying direct format');
                 img.src = `https://drive.google.com/uc?id=${fileId}`;
               } else {
-                console.error('Modal: All formats failed');
                 onImageLoad();
               }
             } else {
