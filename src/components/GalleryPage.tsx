@@ -113,7 +113,6 @@ export const GalleryPage = ({ onBackToGenerator, selectedFolder, onFolderChange 
                     <GalleryImage
                       key={`${currentFolder.id}-${index}`}
                       imageUrl={imageUrl}
-                      index={index}
                     />
                   ))}
                 </div>

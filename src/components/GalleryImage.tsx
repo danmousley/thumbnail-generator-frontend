@@ -6,13 +6,11 @@ import { useModal } from './ModalProvider';
 
 interface GalleryImageProps {
   imageUrl: string;
-  index: number;
 }
 
 // Memoized image component to prevent re-renders
 export const GalleryImage = memo(function GalleryImage({ 
-  imageUrl, 
-  index
+  imageUrl
 }: GalleryImageProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
