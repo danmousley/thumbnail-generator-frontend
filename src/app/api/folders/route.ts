@@ -1,6 +1,8 @@
 import { google } from 'googleapis';
 import { NextResponse } from 'next/server';
 
+import { initializeGoogleDrive } from '@/lib/googleAuth';
+
 export interface DriveFolder {
   id: string;
   name: string;
@@ -8,72 +10,9 @@ export interface DriveFolder {
   images: string[];
 }
 
-// Mock data for development - replace with actual Google Drive API
-const getMockData = (): DriveFolder[] => {
-  return [
-    {
-      id: '1',
-      name: 'My Amazing Video Thumbnails',
-      lastModified: '2024-01-15T10:30:00Z',
-      images: [
-        'https://picsum.photos/400/300?random=1',
-        'https://picsum.photos/400/300?random=2',
-        'https://picsum.photos/400/300?random=3',
-        'https://picsum.photos/400/300?random=4',
-      ],
-    },
-    {
-      id: '2',
-      name: 'Tutorial Series Batch 1',
-      lastModified: '2024-01-10T14:20:00Z',
-      images: [
-        'https://picsum.photos/400/300?random=5',
-        'https://picsum.photos/400/300?random=6',
-        'https://picsum.photos/400/300?random=7',
-      ],
-    },
-    {
-      id: '3',
-      name: 'Product Launch Campaign',
-      lastModified: '2024-01-05T09:15:00Z',
-      images: [
-        'https://picsum.photos/400/300?random=8',
-        'https://picsum.photos/400/300?random=9',
-      ],
-    },
-  ];
-};
-
-async function initializeGoogleDrive() {
-  try {
-    // Check if we have the required environment variables
-    const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-    const serviceAccountPrivateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
-    const projectId = process.env.GOOGLE_SERVICE_ACCOUNT_PROJECT_ID;
 
 
 
-    if (!serviceAccountEmail || !serviceAccountPrivateKey || !projectId) {
-      console.log('Google Drive credentials not configured, using mock data');
-      return null;
-    }
-
-    const auth = new google.auth.GoogleAuth({
-      scopes: ['https://www.googleapis.com/auth/drive.readonly'],
-      credentials: {
-        type: 'service_account',
-        project_id: projectId,
-        client_email: serviceAccountEmail,
-        private_key: serviceAccountPrivateKey.replace(/\\n/g, '\n'),
-      },
-    });
-
-    return google.drive({ version: 'v3', auth });
-  } catch (error) {
-    console.error('Failed to initialize Google Drive:', error);
-    return null;
-  }
-}
 
 async function getImagesFromFolder(drive: ReturnType<typeof google.drive>, folderId: string): Promise<string[]> {
   try {
@@ -99,15 +38,21 @@ export async function GET() {
     const drive = await initializeGoogleDrive();
     
     if (!drive) {
-      // Return mock data if Google Drive is not configured
-      return NextResponse.json(getMockData());
+      // Return error response if Google Drive is not configured
+      return NextResponse.json(
+        { error: 'Google Drive authentication failed. Please check your credentials.' },
+        { status: 500 }
+      );
     }
 
     const parentFolderId = process.env.NEXT_PUBLIC_GOOGLE_DRIVE_PARENT_FOLDER_ID;
     
     if (!parentFolderId) {
-      console.log('Parent folder ID not configured, using mock data');
-      return NextResponse.json(getMockData());
+      console.log('Parent folder ID not configured');
+      return NextResponse.json(
+        { error: 'Google Drive parent folder not configured.' },
+        { status: 500 }
+      );
     }
 
     // Get all folders in the parent directory
@@ -139,6 +84,9 @@ export async function GET() {
     return NextResponse.json(sortedFolders);
   } catch (error) {
     console.error('Error in folders API:', error);
-    return NextResponse.json(getMockData());
+    return NextResponse.json(
+      { error: 'Failed to fetch folders from Google Drive.' },
+      { status: 500 }
+    );
   }
 } 

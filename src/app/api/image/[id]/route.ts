@@ -1,32 +1,8 @@
-import { google } from 'googleapis';
 import { NextRequest, NextResponse } from 'next/server';
 
-async function initializeGoogleDrive() {
-  try {
-    const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-    const serviceAccountPrivateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
-    const projectId = process.env.GOOGLE_SERVICE_ACCOUNT_PROJECT_ID;
+import { initializeGoogleDrive } from '@/lib/googleAuth';
 
-    if (!serviceAccountEmail || !serviceAccountPrivateKey || !projectId) {
-      return null;
-    }
 
-    const auth = new google.auth.GoogleAuth({
-      scopes: ['https://www.googleapis.com/auth/drive.readonly'],
-      credentials: {
-        type: 'service_account',
-        project_id: projectId,
-        client_email: serviceAccountEmail,
-        private_key: serviceAccountPrivateKey.replace(/\\n/g, '\n'),
-      },
-    });
-
-    return google.drive({ version: 'v3', auth });
-  } catch (error) {
-    console.error('Failed to initialize Google Drive:', error);
-    return null;
-  }
-}
 
 export async function GET(
   request: NextRequest,

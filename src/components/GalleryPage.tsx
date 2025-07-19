@@ -15,16 +15,19 @@ interface GalleryPageProps {
 export const GalleryPage = ({ onBackToGenerator, selectedFolder, onFolderChange }: GalleryPageProps) => {
   const [folders, setFolders] = useState<DriveFolder[]>([]);
   const [isLoadingFolders, setIsLoadingFolders] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Get current folder
   const currentFolder = folders.find(f => f.id === selectedFolder);
 
   const loadFolders = useCallback(async () => {
     setIsLoadingFolders(true);
+    setError(null);
     try {
       const response = await fetch('/api/folders');
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
       const drivefolders: DriveFolder[] = await response.json();
       setFolders(drivefolders);
@@ -35,6 +38,7 @@ export const GalleryPage = ({ onBackToGenerator, selectedFolder, onFolderChange 
       }
     } catch (error) {
       console.error('Error loading folders:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load folders');
     } finally {
       setIsLoadingFolders(false);
     }
@@ -76,7 +80,7 @@ export const GalleryPage = ({ onBackToGenerator, selectedFolder, onFolderChange 
       )}
 
       {/* Folder Selector */}
-      {!isLoadingFolders && folders.length > 0 && (
+      {!isLoadingFolders && !error && folders.length > 0 && (
         <>
           <div className="space-y-2">
             <label className="block text-sm font-semibold text-papery-white">
@@ -126,8 +130,27 @@ export const GalleryPage = ({ onBackToGenerator, selectedFolder, onFolderChange 
         </>
       )}
 
+      {/* Error State */}
+      {!isLoadingFolders && error && (
+        <div className="text-center text-papery-white/60 py-12">
+          <div className="max-w-md mx-auto space-y-4">
+            <div className="w-16 h-16 mx-auto bg-orange-energy/20 rounded-full flex items-center justify-center">
+              <span className="text-orange-energy text-2xl">⚠</span>
+            </div>
+            <h3 className="text-xl font-semibold text-papery-white">Connection Error</h3>
+            <p className="text-papery-white/80">{error}</p>
+            <button
+              onClick={loadFolders}
+              className="bg-orange-energy text-white px-6 py-3 rounded-lg hover:bg-orange-energy/90 transition-colors font-semibold"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Empty State */}
-      {!isLoadingFolders && folders.length === 0 && (
+      {!isLoadingFolders && !error && folders.length === 0 && (
         <div className="text-center text-papery-white/60 py-12">
           <p>No folders found. Generate some thumbnails first!</p>
           <button
