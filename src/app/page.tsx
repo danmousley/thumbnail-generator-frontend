@@ -112,7 +112,7 @@ function HomeContent() {
 
     try {
       // Send to n8n backend
-      const response = await fetch('https://danandbob.app.n8n.cloud/webhook-test/00a0656f-95f7-424c-ba92-fa0a8ff412b8', {
+      const response = await fetch(process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || '', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
