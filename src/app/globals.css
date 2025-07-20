@@ -27,7 +27,7 @@
   /* Custom font families */
   --font-main:
     'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-sketch: 'Kalam', cursive, sans-serif;
+  --font-sketch: 'Caveat', cursive, 'Brush Script MT', 'Lucida Handwriting', serif;
   --font-sans: var(--font-main);
 }
 

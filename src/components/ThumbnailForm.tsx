@@ -92,6 +92,29 @@ export const ThumbnailForm = ({
           />
         </div>
 
+        {/* Specific Concept Description - Only show in specific concept mode */}
+        {activeTab === 'specific-concept' && (
+          <div>
+            <label
+              htmlFor="conceptDescription"
+              className="block text-sm font-semibold text-papery-white mb-2"
+            >
+              Specific Concept Description *
+            </label>
+            <textarea
+              id="conceptDescription"
+              required
+              rows={4}
+              value={formData.conceptDescription}
+              onChange={e =>
+                onInputChange('conceptDescription', e.target.value)
+              }
+              className="w-full px-4 py-3 border border-papery-white/30 rounded-lg focus:ring-2 focus:ring-orange-energy focus:border-orange-energy outline-none transition-colors bg-papery-white/10 text-papery-white placeholder-papery-white/60 resize-vertical"
+              placeholder="Describe the specific concept you want for your thumbnail..."
+            />
+          </div>
+        )}
+
         {/* Email Address */}
         <div>
           <label
@@ -116,29 +139,6 @@ export const ThumbnailForm = ({
             We&apos;ll send the link to your generated thumbnails to this email address
           </p>
         </div>
-
-        {/* Specific Concept Description - Only show in specific concept mode */}
-        {activeTab === 'specific-concept' && (
-          <div>
-            <label
-              htmlFor="conceptDescription"
-              className="block text-sm font-semibold text-papery-white mb-2"
-            >
-              Specific Concept Description *
-            </label>
-            <textarea
-              id="conceptDescription"
-              required
-              rows={4}
-              value={formData.conceptDescription}
-              onChange={e =>
-                onInputChange('conceptDescription', e.target.value)
-              }
-              className="w-full px-4 py-3 border border-papery-white/30 rounded-lg focus:ring-2 focus:ring-orange-energy focus:border-orange-energy outline-none transition-colors bg-papery-white/10 text-papery-white placeholder-papery-white/60 resize-vertical"
-              placeholder="Describe the specific concept you want for your thumbnail..."
-            />
-          </div>
-        )}
 
         {/* Error Message */}
         {submitError && (
