@@ -89,11 +89,26 @@ function HomeContent() {
     setIsSubmitting(true);
     setSubmitError(null);
 
-    // Prepare data based on active tab (always include email)
+    // Get user's actual local time (preserving DST and their locale)
+    const now = new Date();
+    const userLocalTime = now.toLocaleString(); // Uses user's browser locale automatically
+    const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    
+    // Prepare data based on active tab (always include email and timestamp)
     const submitData =
       activeTab === 'concept-generation'
-        ? { videoTitle: formData.videoTitle, transcript: formData.transcript, email: formData.email }
-        : formData;
+        ? { 
+            videoTitle: formData.videoTitle, 
+            transcript: formData.transcript, 
+            email: formData.email,
+            submittedAt: userLocalTime,
+            userTimezone: userTimezone
+          }
+        : {
+            ...formData,
+            submittedAt: userLocalTime,
+            userTimezone: userTimezone
+          };
 
     try {
       // Send to n8n backend
