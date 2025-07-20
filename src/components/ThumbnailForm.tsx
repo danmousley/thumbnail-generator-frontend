@@ -92,6 +92,31 @@ export const ThumbnailForm = ({
           />
         </div>
 
+        {/* Email Address */}
+        <div>
+          <label
+            htmlFor="email"
+            className="block text-sm font-semibold text-papery-white mb-2"
+          >
+            Email Address *
+          </label>
+          <input
+            type="email"
+            id="email"
+            required
+            autoComplete="email"
+            value={formData.email}
+            onChange={e =>
+              onInputChange('email', e.target.value)
+            }
+            className="w-full px-4 py-3 border border-papery-white/30 rounded-lg focus:ring-2 focus:ring-orange-energy focus:border-orange-energy outline-none transition-colors bg-papery-white/10 text-papery-white placeholder-papery-white/60"
+            placeholder="Enter your email address..."
+          />
+          <p className="text-sm text-papery-white/60 mt-1">
+            We&apos;ll send the link to your generated thumbnails to this email address
+          </p>
+        </div>
+
         {/* Specific Concept Description - Only show in specific concept mode */}
         {activeTab === 'specific-concept' && (
           <div>

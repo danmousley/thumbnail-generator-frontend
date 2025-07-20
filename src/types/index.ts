@@ -13,6 +13,7 @@ export interface FormData {
   videoTitle: string;
   transcript: string;
   conceptDescription: string;
+  email: string;
 }
 
 export interface ModalContextType {
