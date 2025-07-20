@@ -19,7 +19,7 @@ export const GalleryImage = memo(function GalleryImage({
 
   return (
     <div
-      className="group relative bg-papery-white/10 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer aspect-[3/2]"
+      className="group relative bg-papery-white/10 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer aspect-[16/9]"
       onClick={() => showModal(imageUrl)}
     >
       {/* Loading spinner - shows before image loads */}

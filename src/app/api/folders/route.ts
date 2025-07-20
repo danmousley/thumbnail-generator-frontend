@@ -17,7 +17,7 @@ export interface DriveFolder {
 async function getImagesFromFolder(drive: ReturnType<typeof google.drive>, folderId: string): Promise<string[]> {
   try {
     const imagesResponse = await drive.files.list({
-      q: `'${folderId}' in parents and (mimeType contains 'image/' or name contains '.jpg' or name contains '.jpeg' or name contains '.png' or name contains '.gif' or name contains '.webp' or name contains '.bmp' or name contains '.svg') and trashed=false`,
+      q: `'${folderId}' in parents and (mimeType contains 'image/' or name contains '.jpg' or name contains '.jpeg' or name contains '.png' or name contains '.gif' or name contains '.webp' or name contains '.bmp' or name contains '.svg') and mimeType != 'application/vnd.google-apps.folder' and trashed=false`,
       fields: 'files(id, name, mimeType)',
       orderBy: 'name',
       pageSize: 100,
