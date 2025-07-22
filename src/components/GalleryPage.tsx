@@ -31,25 +31,27 @@ export const GalleryPage = ({ onBackToGenerator, selectedFolder, onFolderChange 
       }
       const drivefolders: DriveFolder[] = await response.json();
       setFolders(drivefolders);
-      
-      // Set default folder to the first (most recent) one
-      if (drivefolders.length > 0 && !selectedFolder) {
-        onFolderChange(drivefolders[0].id);
-      }
     } catch (error) {
       console.error('Error loading folders:', error);
       setError(error instanceof Error ? error.message : 'Failed to load folders');
     } finally {
       setIsLoadingFolders(false);
     }
-  }, [selectedFolder, onFolderChange]);
+  }, []);
+
+  // Auto-select first folder only on initial load
+  useEffect(() => {
+    if (folders.length > 0 && !selectedFolder) {
+      onFolderChange(folders[0].id);
+    }
+  }, [folders, selectedFolder, onFolderChange]);
 
   // Load folders when component mounts
   useEffect(() => {
     if (folders.length === 0) {
       loadFolders();
     }
-  }, [folders.length, loadFolders]);
+  }, [loadFolders]);
 
   return (
     <div className="space-y-8">
