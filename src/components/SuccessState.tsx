@@ -25,9 +25,9 @@ export const SuccessState = ({ onGenerateMore, onViewGallery }: SuccessStateProp
           </svg>
         </div>
         <h2 className="text-3xl font-bold text-papery-white font-main">
-          Thumbnails Generated!
+          Thumbnails Generation Started!
         </h2>
-        <p className="text-lg text-papery-white/80 font-sketch">
+        <p className="text-lg text-orange-energy font-main italic">
           You will receive an email once your thumbnails are ready.
         </p>
       </div>

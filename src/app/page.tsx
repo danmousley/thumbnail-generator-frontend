@@ -191,7 +191,7 @@ function HomeContent() {
     <div className="min-h-screen bg-jet">
       {/* Header */}
       <div className="text-center py-8">
-        <p className="text-2xl text-orange-energy mb-2 italic font-sketch">
+        <p className="text-2xl text-orange-energy mb-2 italic font-main">
           Morningside AI
         </p>
         <h1 className="text-4xl font-bold text-papery-white font-main">
